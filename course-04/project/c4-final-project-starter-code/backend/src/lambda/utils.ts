@@ -1,5 +1,10 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { parseUserId } from "../auth/utils";
+import * as AWS  from 'aws-sdk'
+
+const docClient = new AWS.DynamoDB.DocumentClient()
+
+const todoTable = process.env.TODOS_TABLE
 
 /**
  * Get a user id from an API Gateway event
@@ -13,4 +18,20 @@ export function getUserId(event: APIGatewayProxyEvent): string {
   const jwtToken = split[1]
 
   return parseUserId(jwtToken)
+}
+
+export async function todoExists(userId: string, todoId: string) {
+
+  const result = await docClient
+    .get({
+      TableName: todoTable,
+      Key: {
+        partitionKey: userId,
+        sortKey: todoId
+      }
+    })
+    .promise()
+
+  console.log('Get todo ID: ', result)
+  return !!result.Item
 }
