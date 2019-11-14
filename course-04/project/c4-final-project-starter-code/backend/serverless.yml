@@ -9,7 +9,11 @@ plugins:
 
 # Uncomment to enable individual packaging
 package:
-  individually: true
+#   individually: true
+
+  tracing:
+    lambda: true
+    apiGateway: true
 
 provider:
   name: aws
@@ -24,20 +28,20 @@ provider:
     SIGNED_URL_EXPIRATION: 300
     INDEX_NAME: todoIndex
 
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - dynamodb:Scan
-        - dynamodb:PutItem
-        - dynamodb:GetItem
-        - dynamodb:DeleteItem
-        - dynamodb:UpdateItem
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-    - Effect: Allow
-      Action:
-        - s3:PutObject
-        - s3:GetObject
-      Resource: arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*
+  # iamRoleStatements:
+  #   - Effect: Allow
+  #     Action:
+  #       - dynamodb:Scan
+  #       - dynamodb:PutItem
+  #       - dynamodb:GetItem
+  #       - dynamodb:DeleteItem
+  #       - dynamodb:UpdateItem
+  #     Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+  #   - Effect: Allow
+  #     Action:
+  #       - s3:PutObject
+  #       - s3:GetObject
+  #     Resource: arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*
 
 custom:
   documentation:
@@ -68,7 +72,12 @@ functions:
           path: todos
           authorizer: Auth
           cors: true
-
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+#/index/${self:provider.environment.INDEX_NAME}
   # TODO: Configure this function
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
@@ -84,10 +93,15 @@ functions:
             description: Create a new todo item
             requestModels:
               'application/json': TodoItem
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
   # TODO: Configure this function
   UpdateTodo:
-    handler: src/lambda/http/updateTodo.handler
+    handler: src/lambda/http/updatedTodo.handler
     events:
       - http:
           method: patch
@@ -100,6 +114,12 @@ functions:
             description: Update a new todo item
             requestModels:
               'application/json': TodoUpdate
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
   # TODO: Configure this function
   DeleteTodo:
@@ -113,6 +133,12 @@ functions:
           documentation:
             summary: Delete a todo item
             description: Delete a todo item
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
   # TODO: Configure this function
   GenerateUploadUrl:
@@ -123,6 +149,16 @@ functions:
           path: todos/{todoId}/attachment
           authorizer: Auth
           cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+        Resource: arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*
 
 resources:
   Resources:
@@ -142,23 +178,23 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties:
         AttributeDefinitions:
-          - AttributeName: partitionKey
+          - AttributeName: userId
             AttributeType: S
-          - AttributeName: sortKey
+          - AttributeName: todoId
             AttributeType: S
           - AttributeName: indexKey
             AttributeType: S
         KeySchema:
-          - AttributeName: partitionKey
+          - AttributeName: userId
             KeyType: HASH
-          - AttributeName: sortKey
+          - AttributeName: todoId
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:provider.environment.TODOS_TABLE}
         LocalSecondaryIndexes:
           - IndexName: ${self:provider.environment.INDEX_NAME}
             KeySchema:
-              - AttributeName: partitionKey
+              - AttributeName: userId
                 KeyType: HASH
               - AttributeName: indexKey
                 KeyType: RANGE

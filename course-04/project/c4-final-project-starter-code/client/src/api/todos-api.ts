@@ -3,6 +3,7 @@ import { Todo } from '../types/Todo';
 import { CreateTodoRequest } from '../types/CreateTodoRequest';
 import Axios from 'axios'
 import { UpdateTodoRequest } from '../types/UpdateTodoRequest';
+import dateFormat from 'dateformat'
 
 export async function getTodos(idToken: string): Promise<Todo[]> {
   console.log('Fetching todos')
@@ -21,13 +22,14 @@ export async function createTodo(
   idToken: string,
   newTodo: CreateTodoRequest
 ): Promise<Todo> {
+  
   const response = await Axios.post(`${apiEndpoint}/todos`,  JSON.stringify(newTodo), {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`
     }
   })
-  return response.data.item
+  return response.data.newItem
 }
 
 export async function patchTodo(

@@ -26,8 +26,8 @@ export async function todoExists(userId: string, todoId: string) {
     .get({
       TableName: todoTable,
       Key: {
-        partitionKey: userId,
-        sortKey: todoId
+        userId: userId,
+        todoId: todoId
       }
     })
     .promise()

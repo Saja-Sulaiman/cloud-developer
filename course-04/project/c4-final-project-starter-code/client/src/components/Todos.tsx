@@ -211,4 +211,11 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
 
     return dateFormat(date, 'yyyy-mm-dd') as string
   }
+
+  calculateCreatedAt(): string {
+    const date = new Date()
+    date.setDate(date.getDate())
+
+    return dateFormat(date, 'yyyy-mm-dd') as string
+  }
 }
